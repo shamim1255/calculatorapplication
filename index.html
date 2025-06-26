@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Scientific Calculator</title>
+    <style>
+        html, body {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: 'Roboto', sans-serif; background-color: #f1f3f4;
+            user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
+        }
+
+        .calculator {
+            width: 100%; height: 100vh; max-width: 500px; margin: 0 auto;
+            background-color: #ffffff; display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- App Header --- */
+        .app-header {
+            display: flex; align-items: center; padding: 10px 15px;
+            background-color: #ffffff; border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+        .app-header .youtube-icon { font-size: 20px; color: #ff0000; margin-right: 10px; }
+        .app-header .title { font-size: 18px; font-weight: 500; color: #202124; flex-grow: 1; }
+        .app-header .menu-icon { font-size: 24px; color: #5f6368; cursor: pointer; }
+        .app-header .telegram–icon { font-size : 20px ; colour : #ff0000; margin:-right;  10px; }
+        /* --- Display Area --- */
+        .display-area {
+            padding: 10px 25px 15px; /* Adjust padding */
+            background-color: #ffffff; flex-shrink: 0; position: relative;
+            display: flex; /* Use flex for vertical alignment */
+            flex-direction: column;
+            justify-content: flex-end; /* Align content to bottom */
+            min-height: 130px; /* Ensure enough height for both lines + top row */
+        }
+        .display-top-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; /* Space below icons/link */
+            min-height: 20px;
+            width: 100%; /* Take full width */
+        }
+        .display-top-row .icon { font-size: 18px; color: #5f6368; cursor: pointer; }
+        .display-top-row .youtube-link-display { font-size: 13px; font-weight: 500; color: #5f6368; text-decoration: none; }
+        .display-top-row .youtube-link-display:hover { color: #1a73e8; }
+
+        /* History Panel */
+        #history-display {
+            position: absolute; top: 40px; /* Position below top row */ left: 0; right: 0;
+            background-color: #ffffff; z-index: 10; padding: 10px 25px 5px;
+            max-height: 150px; overflow-y: auto; text-align: right;
+            font-size: 14px; color: #5f6368; display: none;
+            border-bottom: 1px solid #e0e0e0; line-height: 1.3;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #history-display .history-entry { margin-bottom: 6px; }
+        #history-display .history-expression { color: #70757a; font-size: 12px; }
+        #history-display .history-result { font-size: 16px; font-weight: 500; color: #3c4043; }
+
+        /* Expression Display (Top Line) */
+         #expression-display {
+            font-size: 20px; /* Smaller font size */
+            color: #5f6368;  /* Grey color */
+            min-height: 25px; /* Ensure some height */
+            margin-bottom: 4px; /* Space between lines */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            text-align: right;
+            width: 100%;
+            overflow-x: auto; /* Allow horizontal scroll if needed */
+            white-space: nowrap; /* Prevent wrapping initially */
+         }
+
+        /* Main Display (Bottom Line) */
+        #display {
+            min-height: 60px; background-color: transparent; border: none;
+            font-size: 56px; /* Slightly adjust main size */ color: #202124;
+            padding: 0; box-sizing: border-box; outline: none;
+            word-wrap: break-word; overflow-wrap: break-word;
+            line-height: 1.1; text-align: right; width: 100%;
+        }
+
+        /* --- Button Styling --- */
+        .buttons-container {
+            flex-grow: 1; background-color: #f1f3f4; padding: 15px;
+            display: flex; position: relative;
+        }
+        .buttons { display: grid; gap: 12px; width: 100%; align-content: stretch; }
+        .basic-buttons { grid-template-columns: repeat(4, 1fr); }
+        .scientific-buttons { grid-template-columns: repeat(7, 1fr); display: none; gap: 8px; }
+
+        .button { /* Base button style */
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 18px; border: none; background-color: #ffffff;
+            font-size: 20px; color: #3c4043; cursor: pointer;
+            transition: background-color 0.2s ease; font-weight: 400;
+            padding: 10px 5px; box-sizing: border-box; text-align: center;
+        }
+        /* Specific styles */
+        .button.number, .button.decimal { background-color: #ffffff; color: #202124; font-size: 22px;}
+        .button.scientific.const, .button.parenthesis { background-color: #ffffff; color: #202124; }
+        .button.operator, .button.backspace, .button.percent, .button.toggle-mode { color: #1a73e8; background-color: #e8f0fe; font-weight: 500; font-size: 24px; }
+        .button.scientific, .button.deg, .button.inv, .button.factorial, .button.power, .button.sqrt { color: #1a73e8; background-color: #e8f0fe; font-weight: 500; font-size: 16px; }
+        .button.clear { color: #d93025; background-color: #fce8e6; font-weight: 500; font-size: 20px; }
+        .button.equals { background-color: #1a73e8; color: #ffffff; font-size: 28px; font-weight: 500; }
+        /* Active states */
+        .button:active { background-color: #e0e0e0; }
+        .button.operator:active, .button.backspace:active, .button.percent:active, .button.toggle-mode:active, .button.scientific:active, .button.deg:active, .button.inv:active, .button.factorial:active, .button.power:active, .button.sqrt:active { background-color: #d2e3fc; }
+        .button.number:active, .button.decimal:active, .button.scientific.const:active, .button.parenthesis:active { background-color: #f1f3f4; }
+        .button.clear:active { background-color: #fbdcd9; }
+        .button.equals:active { background-color: #185abc; }
+        /* Visibility & INV state */
+        .calculator.scientific-mode .basic-buttons { display: none; }
+        .calculator.scientific-mode .scientific-buttons { display: grid; }
+        .calculator:not(.scientific-mode) .basic-buttons { display: grid; }
+        .calculator:not(.scientific-mode) .scientific-buttons { display: none; }
+        .button.inv.active { background-color: #c2dbfc; font-weight: bold; }
+        /* Scientific button specifics */
+         .scientific-buttons .button { font-size: 16px; border-radius: 12px; }
+         .scientific-buttons .button.number, .scientific-buttons .button.decimal, .scientific-buttons .button.operator, .scientific-buttons .button.equals, .scientific-buttons .button.backspace, .scientific-buttons .button.clear, .scientific-buttons .button.percent { font-size: 20px; }
+
+
+    </style>
+</head>
+<body>
+    <div class="calculator" id="calculator">
+        <!-- App Header -->
+       <div class="app-header">
+            <span class="youtube-icon">▶️</span>
+            <span class="title">Scientific Calculator</span>
+            <span class="menu-icon">⋮</span>
+       </div>
+
+       <!-- Display Area -->
+       <div class="display-area">
+           <div class="display-top-row">
+                <span class="icon history-toggle" onclick="toggleHistory()">🕒</span>
+                <a href="https://youtube.com/@sk-techuniverse-2?si=bumb0KGjIthTCZ-9" target="_blank" class="youtube-link-display">YouTube</a>
+           </div>
+            <!-- History Panel (Initially Hidden) -->
+            <div id="history-display"></div>
+            <!-- Expression Display -->
+            <div id="expression-display"></div>
+            <!-- Main Display -->
+           <div id="display">0</div>
+       </div>
+
+       <!-- Buttons Container -->
+       <div class="buttons-container">
+           <!-- Basic Buttons -->
+           <div class="buttons basic-buttons">
+                <!-- Basic Buttons Rows -->
+                <button class="button clear" onclick="clearDisplay()">C</button>
+                <button class="button percent" onclick="handlePercent()">%</button>
+                <button class="button backspace" onclick="backspace()">⌫</button>
+                <button class="button operator" onclick="chooseOperator('÷')">÷</button>
+                <button class="button number" onclick="appendNumber('7')">7</button>
+                <button class="button number" onclick="appendNumber('8')">8</button>
+                <button class="button number" onclick="appendNumber('9')">9</button>
+                <button class="button operator" onclick="chooseOperator('×')">×</button>
+                <button class="button number" onclick="appendNumber('4')">4</button>
+                <button class="button number" onclick="appendNumber('5')">5</button>
+                <button class="button number" onclick="appendNumber('6')">6</button>
+                <button class="button operator" onclick="chooseOperator('-')">−</button>
+                <button class="button number" onclick="appendNumber('1')">1</button>
+                <button class="button number" onclick="appendNumber('2')">2</button>
+                <button class="button number" onclick="appendNumber('3')">3</button>
+                <button class="button operator" onclick="chooseOperator('+')">+</button>
+                <button class="button toggle-mode" onclick="toggleMode()">↔</button>
+                <button class="button number" onclick="appendNumber('0')">0</button>
+                <button class="button number decimal" onclick="appendDecimal()">.</button>
+                <button class="button equals" onclick="calculate()">=</button>
+           </div>
+
+           <!-- Scientific Buttons -->
+            <div class="buttons scientific-buttons">
+                 <!-- Scientific buttons grid here (same as previous version) -->
+                 <button class="button inv" id="inv-btn" onclick="toggleInverse()">INV</button>
+                 <button class="button deg" onclick="toggleAngleMode()">DEG</button>
+                 <button class="button factorial" onclick="handleScientificFunction('!')">x!</button>
+                 <button class="button clear" onclick="clearDisplay()">C</button>
+                 <button class="button percent" onclick="handlePercent()">%</button>
+                 <button class="button backspace" onclick="backspace()">⌫</button>
+                 <button class="button operator" onclick="chooseOperator('÷')">÷</button>
+                 <button class="button scientific func sin" onclick="handleScientificFunction('sin')">sin</button>
+                 <button class="button scientific func cos" onclick="handleScientificFunction('cos')">cos</button>
+                 <button class="button scientific func tan" onclick="handleScientificFunction('tan')">tan</button>
+                 <button class="button number" onclick="appendNumber('7')">7</button>
+                 <button class="button number" onclick="appendNumber('8')">8</button>
+                 <button class="button number" onclick="appendNumber('9')">9</button>
+                 <button class="button operator" onclick="chooseOperator('×')">×</button>
+                 <button class="button scientific func ln" onclick="handleScientificFunction('ln')">ln</button>
+                 <button class="button scientific func log" onclick="handleScientificFunction('log')">log</button>
+                 <button class="button power" onclick="chooseOperator('^')">x<sup>y</sup></button>
+                 <button class="button number" onclick="appendNumber('4')">4</button>
+                 <button class="button number" onclick="appendNumber('5')">5</button>
+                 <button class="button number" onclick="appendNumber('6')">6</button>
+                 <button class="button operator" onclick="chooseOperator('-')">−</button>
+                  <button class="button scientific const pi" onclick="handleConstant('π')">π</button>
+                 <button class="button scientific const e" onclick="handleConstant('e')">e</button>
+                  <button class="button sqrt" onclick="handleScientificFunction('sqrt')">√</button>
+                 <button class="button number" onclick="appendNumber('1')">1</button>
+                 <button class="button number" onclick="appendNumber('2')">2</button>
+                 <button class="button number" onclick="appendNumber('3')">3</button>
+                 <button class="button operator" onclick="chooseOperator('+')">+</button>
+                 <button class="button toggle-mode" onclick="toggleMode()">↔</button>
+                 <button class="button parenthesis" onclick="appendParenthesis('(')">(</button>
+                 <button class="button parenthesis" onclick="appendParenthesis(')')">)</button>
+                 <button class="button scientific func sqr" onclick="handleScientificFunction('sqr')">x²</button>
+                 <button class="button number" onclick="appendNumber('00')">00</button>
+                 <button class="button number" onclick="appendNumber('0')">0</button>
+                 <button class="button number decimal" onclick="appendDecimal()">.</button>
+                 <button class="button equals" onclick="calculate()">=</button>
+            </div>
+       </div>
+    </div>
+
+    <script>
+        const calculatorElement = document.getElementById('calculator');
+        const display = document.getElementById('display');
+        const expressionDisplay = document.getElementById('expression-display'); // Get expression element
+        const historyDisplay = document.getElementById('history-display');
+
+        let currentInput = '';        // Stores the number currently being entered OR the result after '='
+        let operator = null;          // Stores the selected operator (+, -, ×, ÷, ^)
+        let previousInput = '';       // Stores the first operand OR intermediate result
+        let currentExpression = '';   // Stores the full expression string for the top display
+        let calculationPerformed = false; // Flag if '=' was just pressed
+        let calculationHistory = [];  // Array to store history
+
+        // Scientific Mode State
+        let isScientificMode = false;
+        let angleMode = 'RAD';
+        let isInverse = false;
+        let parenthesisOpenCount = 0;
+
+        // --- Display Update ---
+        function updateDisplay() {
+             // Format numbers with commas for display only
+             const formattedCurrentInput = formatNumber(currentInput || '0');
+             const formattedPreviousInput = formatNumber(previousInput); // Use previousInput for display when operator is pressed
+             const formattedExpression = formatExpression(currentExpression);
+
+             // Update bottom display (main input/result)
+             display.textContent = formattedCurrentInput;
+             // If an operator was just pressed OR calculation done, show previousInput/result instead
+             if (operator !== null && currentInput === '' || calculationPerformed) {
+                 display.textContent = formattedPreviousInput || '0'; // Show intermediate/final result
+             }
+
+
+            // Update top display (expression)
+            expressionDisplay.textContent = formattedExpression;
+            // Scroll expression to the end if it overflows
+            expressionDisplay.scrollLeft = expressionDisplay.scrollWidth;
+
+
+             // Adjust font size
+             adjustFontSize(display, display.textContent);
+             adjustFontSize(expressionDisplay, expressionDisplay.textContent, true); // Use smaller base for expression
+        }
+
+         function adjustFontSize(element, text, isExpression = false) {
+             const baseSize = isExpression ? 20 : 56;
+             const minSize = isExpression ? 14 : 24;
+             let fontSize = baseSize;
+             const maxLen = isExpression ? 40 : 15; // Allow longer expression
+
+             const len = text.replace(/,/g, '').length; // Ignore commas for length check
+
+             if (len > maxLen + 15) fontSize = minSize;
+             else if (len > maxLen + 8) fontSize = baseSize * 0.6;
+             else if (len > maxLen) fontSize = baseSize * 0.8;
+
+             element.style.fontSize = `${fontSize}px`;
+         }
+
+
+        // --- Formatting ---
+        function formatNumber(numStr) { /* ... same ... */
+             if (numStr === null || numStr === undefined) numStr = ''; numStr = String(numStr);
+             if (!numStr || numStr === 'Error' || numStr === 'NaN') return numStr;
+             if (numStr.endsWith('.')) return numStr; if (numStr.includes('e')) return numStr;
+             const parts = numStr.split('.'); parts[0] = parts[0].replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ','); return parts.join('.');
+         }
+        function formatExpression(exprStr) { /* ... Use spaces ... */
+             if (!exprStr) return '';
+             return exprStr
+                 .replace(/([+\-×÷%^])/g, ' $1 ') // Add spaces around operators
+                 .replace(/\s+/g, ' ')
+                 .trim();
+         }
+         function unformatNumber(numStr) { /* ... same ... */
+            if (numStr === null || numStr === undefined) return ''; numStr = String(numStr); return numStr.replace(/,/g, '');
+         }
+
+        // --- History Functions --- (remain the same)
+        function addToHistory(expression, result) { /* ... same ... */
+            calculationHistory.push({ expression: expression, result: result });
+            if (calculationHistory.length > 30) calculationHistory.shift();
+            if (historyDisplay.style.display === 'block') renderHistory();
+        }
+        function renderHistory() { /* ... same ... */
+            historyDisplay.innerHTML = '';
+            for (let i = calculationHistory.length - 1; i >= 0; i--) {
+                const entry = calculationHistory[i]; const entryDiv = document.createElement('div'); entryDiv.classList.add('history-entry');
+                 entryDiv.innerHTML = `<div class="history-expression">${formatExpression(entry.expression)}</div><div class="history-result">=${formatNumber(entry.result)}</div>`; // Format expression here too
+                historyDisplay.appendChild(entryDiv);
+            } historyDisplay.scrollTop = 0;
+        }
+        function toggleHistory() { /* ... same ... */
+             if (historyDisplay.style.display === 'none' || historyDisplay.style.display === '') { renderHistory(); historyDisplay.style.display = 'block'; }
+             else { historyDisplay.style.display = 'none'; }
+        }
+
+        // --- Mode Switching --- (remain the same)
+         function toggleMode() { /* ... same ... */
+             isScientificMode = !isScientificMode; calculatorElement.classList.toggle('scientific-mode', isScientificMode);
+             updateScientificButtonText(); historyDisplay.style.display = 'none';
+         }
+         function updateScientificButtonText() { /* ... same ... */
+            if (!isScientificMode) return; // Only update if scientific
+            const degRadButton = document.querySelector('.scientific-buttons .button.deg'); if(degRadButton) degRadButton.textContent = angleMode === 'DEG' ? 'RAD' : 'DEG';
+            const invBtn = document.querySelector('.scientific-buttons .button.inv'); if(invBtn) invBtn.classList.toggle('active', isInverse);
+            document.querySelector('.scientific-buttons .button.sin').textContent = isInverse ? 'sin⁻¹' : 'sin'; document.querySelector('.scientific-buttons .button.cos').textContent = isInverse ? 'cos⁻¹' : 'cos'; document.querySelector('.scientific-buttons .button.tan').textContent = isInverse ? 'tan⁻¹' : 'tan';
+            document.querySelector('.scientific-buttons .button.ln').textContent = isInverse ? 'eˣ' : 'ln'; document.querySelector('.scientific-buttons .button.log').textContent = isInverse ? '10ˣ' : 'log';
+            document.querySelector('.scientific-buttons .button.sqrt').innerHTML = isInverse ? 'x²' : '√'; document.querySelector('.scientific-buttons .button.power').innerHTML = isInverse ? 'ʸ√x' : 'x<sup>y</sup>';
+         }
+         function toggleAngleMode() { /* ... same ... */
+            if (!isScientificMode) return; angleMode = angleMode === 'RAD' ? 'DEG' : 'RAD'; updateScientificButtonText();
+         }
+         function toggleInverse() { /* ... same ... */
+            if (!isScientificMode) return; isInverse = !isInverse; updateScientificButtonText();
+         }
+
+
+        // --- Input Handling --- (Update to manage currentExpression)
+        function appendNumber(number) {
+            if (calculationPerformed) { // Start new calculation
+                 clearDisplay(); // Clear everything first
+             }
+             if (currentInput === '0' && number !== '.') { currentInput = ''; } // Avoid leading 0
+             if (number === '00' && currentInput === '') { number = '0'; } // Treat starting 00 as 0
+
+             currentInput += number;
+             currentExpression += number; // Append to expression string as well
+             updateDisplay();
+         }
+
+        function appendDecimal() {
+             if (calculationPerformed) { clearDisplay(); currentInput = '0.'; currentExpression = '0.'; updateDisplay(); return; }
+             if (!currentInput.includes('.')) {
+                 let toAppend = (currentInput === '' ? '0.' : '.');
+                 currentInput += toAppend;
+                 currentExpression += toAppend; // Add to expression too
+                 updateDisplay();
+             }
+        }
+
+        function appendParenthesis(paren) {
+            if (!isScientificMode) return;
+            if (calculationPerformed) { clearDisplay(); }
+
+            currentInput += paren; // Append directly for sci mode display often
+            currentExpression += paren; // Also append to the expression string
+
+            if (paren === '(') { parenthesisOpenCount++; }
+            else if (paren === ')') { if (parenthesisOpenCount > 0) parenthesisOpenCount--; else { currentInput = currentInput.slice(0, -1); currentExpression = currentExpression.slice(0,-1); } } // Basic validation
+            updateDisplay();
+        }
+
+
+        function chooseOperator(op) {
+            let visualOp = op; // Keep visual representation for expression
+             if (op === '*') visualOp = '×';
+             if (op === '/') visualOp = '÷';
+
+             if (calculationPerformed) { // Start new expression with result
+                 currentExpression = previousInput; // Result becomes start of expression
+                 currentInput = '';
+                 calculationPerformed = false;
+             }
+
+             // Allow changing operator if last thing added was an operator
+             const lastCharInExpr = currentExpression.trim().slice(-1);
+             if (currentInput === '' && operator !== null && ['+','-','×','÷','^'].includes(lastCharInExpr) ) {
+                  // Remove last operator from expression string
+                  currentExpression = currentExpression.trim().slice(0, -1).trim();
+                  operator = op; // Update internal operator
+                  currentExpression += visualOp; // Add new visual operator
+                  updateDisplay();
+                  return;
+              }
+
+             // Perform intermediate calculation if ready
+            if (currentInput !== '' && previousInput !== '' && operator !== null) {
+                 let success = isScientificMode ? calculateIntermediateScientific() : calculateInternal();
+                 if (!success) return; // Stop if calculation failed
+                 currentExpression = previousInput; // Intermediate result becomes start of new expression
+                 currentInput = ''; // Clear current input
+             }
+             // Move current input to previous if it's the first number
+             else if (currentInput !== '') {
+                previousInput = currentInput;
+                currentInput = '';
+             }
+
+            // Set operator and add to expression if we have a number to operate on
+            if (previousInput !== '' || currentExpression !== '') { // Allow starting with operator? (e.g. -5) - needs care
+                 operator = op;
+                 // Prevent adding operator if expression is empty and it's not +/- ?
+                 if (currentExpression !== '' || ['+', '-'].includes(op)) {
+                    currentExpression += visualOp;
+                 }
+            }
+             isInverse = false; updateScientificButtonText();
+             updateDisplay();
+        }
+
+        // Helper for scientific intermediate calculations (basic chaining)
+        function calculateIntermediateScientific() {
+            try {
+                 // Build simple expression for immediate evaluation
+                 let simpleExpr = previousInput + (operator === '^' ? '**' : operator) + currentInput;
+                 previousInput = String(evaluateExpression(simpleExpr)); // Evaluate and store result
+                 return true;
+             } catch (e) {
+                 displayError(e.message);
+                 return false;
+             }
+        }
+
+
+        // --- Calculation Logic ---
+        function calculateInternal() { // Basic mode calculation
+            const prev = parseFloat(unformatNumber(previousInput));
+            const current = parseFloat(unformatNumber(currentInput || previousInput)); // Handle 5+= case
+            if (isNaN(prev) || isNaN(current) || operator === null) return false;
+            let result;
+            try {
+                switch (operator) {
+                    case '+': result = prev + current; break; case '-': result = prev - current; break; case '×': result = prev * current; break;
+                    case '÷': if (current === 0) { displayError("Division by zero"); return false; } result = prev / current; break;
+                    default: return false;
+                }
+                result = parseFloat(result.toPrecision(12)); previousInput = String(result); return true;
+            } catch (e) { displayError("Error"); return false; }
+        }
+
+        function calculate() { // Handles '=' press
+            let finalResult;
+            let exprToLog = currentExpression; // Log the built expression
+
+            if (isScientificMode) {
+                try {
+                    while (parenthesisOpenCount > 0) { currentExpression += ')'; parenthesisOpenCount--; } // Auto-close parens
+                     exprToLog = currentExpression; // Log potentially modified expression
+                     // Evaluate the full expression string
+                     finalResult = evaluateExpression(currentExpression);
+                } catch (e) { displayError(e.message); return; }
+            } else { // Basic Mode
+                if (operator === null || previousInput === '') { // Only a number entered
+                    if (currentInput !== '') previousInput = currentInput;
+                    finalResult = previousInput; exprToLog = previousInput;
+                } else { // Perform final basic calculation
+                     // Ensure currentInput has a value if needed (e.g., 5+ = )
+                     if (currentInput === '') currentInput = previousInput;
+                     exprToLog = previousInput + operator + currentInput; // Build simple expression for log
+                     if (!calculateInternal()) return; // Calc updates previousInput
+                     finalResult = previousInput;
+                }
+            }
+
+            // Post Calculation
+            if (finalResult !== undefined && !isNaN(finalResult)) {
+                 finalResult = parseFloat(parseFloat(finalResult).toPrecision(12));
+                 addToHistory(exprToLog, String(finalResult)); // Log expression and result
+                 currentInput = ''; // Clear current
+                 previousInput = String(finalResult); // Store result
+                 currentExpression = previousInput; // Show result in expression field after '='
+                 operator = null; calculationPerformed = true; parenthesisOpenCount = 0; isInverse = false;
+                 updateScientificButtonText(); updateDisplay();
+            } else if (!String(finalResult).includes("Error")) { displayError("Error"); }
+        }
+
+        // evaluateExpression remains the same (with CAUTION note)
+        function evaluateExpression(expression) { /* ... same as previous ... */
+            console.log("Evaluating:", expression); if (!expression) return previousInput || 0;
+            let expr = expression.replace(/×/g, '*').replace(/÷/g, '/').replace(/√/g, 'Math.sqrt').replace(/π/g, 'Math.PI').replace(/e/g, 'Math.E').replace(/\^/g, '**');
+            expr = expr.replace(/([\d.]+)%/g, '($1/100)');
+            expr = expr.replace(/(sin|cos|tan|asin|acos|atan)\(([^)]*)\)/g, (match, func, value) => { /* ... angle logic ... */ let angleRad; try { angleRad = evaluateExpression(value); } catch { throw new Error("Invalid Input") } if (isNaN(angleRad)) throw new Error("Invalid Input"); if (['sin', 'cos', 'tan'].includes(func) && angleMode === 'DEG') { angleRad = angleRad * Math.PI / 180; } let result; switch (func) { case 'sin': result = Math.sin(angleRad); break; case 'cos': result = Math.cos(angleRad); break; case 'tan': const epsilon = 1e-10; if (Math.abs(Math.cos(angleRad)) < epsilon) throw new Error("Tan Undefined"); result = Math.tan(angleRad); break; case 'asin': result = Math.asin(angleRad); break; case 'acos': result = Math.acos(angleRad); break; case 'atan': result = Math.atan(angleRad); break; } if (['asin', 'acos', 'atan'].includes(func) && angleMode === 'DEG') { result = result * 180 / Math.PI; } if (isNaN(result)) throw new Error("Math Error"); return result; });
+            expr = expr.replace(/ln\(([^)]*)\)/g, (match, value) => `Math.log(${evaluateExpression(value)})`); expr = expr.replace(/log\(([^)]*)\)/g, (match, value) => `Math.log10(${evaluateExpression(value)})`); expr = expr.replace(/(\d+)!/g, (match, value) => factorial(parseInt(value)));
+            try { /* ... Function constructor execution ... */ if (/[^0-9.,+\-*/%()^!eπ √sinco tanlg\sMath.PIEsqrtpowlg10a]/i.test(expr)) { throw new Error("Invalid Characters"); } let open = (expr.match(/\(/g) || []).length; let close = (expr.match(/\)/g) || []).length; if (open !== close) throw new Error("Parenthesis Mismatch"); console.log("Executing:", expr); let calculateFunc = new Function(`'use strict'; return (${expr})`); let result = calculateFunc(); if (!Number.isFinite(result)) { throw new Error("Result is Infinite"); } return result;
+            } catch (e) { console.error("Evaluation Error:", e); throw new Error(e.message === "Parenthesis Mismatch" || e.message === "Invalid Characters" || e.message === "Tan Undefined" ? e.message : "Syntax Error"); }
+        }
+
+        // handleScientificFunction, factorial, handleConstant remain the same
+        function handleScientificFunction(func) { /* ... same ... */
+             if (!isScientificMode) return; if (currentInput === '' && previousInput === '') return; let valueStr = unformatNumber(currentInput || previousInput); let value = parseFloat(valueStr); if (isNaN(value)) { displayError("Invalid Input"); return; } let result; let expressionPrefix = ''; let expressionSuffix = `(${valueStr})`;
+             try { /* ... calc logic ... */ let angleValue = value; if (['sin', 'cos', 'tan'].includes(func) && !isInverse) { if (angleMode === 'DEG') angleValue = value * Math.PI / 180; expressionPrefix = func + (isInverse ? '⁻¹' : ''); } else if (['asin', 'acos', 'atan'].includes(func) && isInverse) { expressionPrefix = func.replace('a', '') + '⁻¹'; } else { switch (func) { case 'ln': expressionPrefix = isInverse ? 'e^' : 'ln'; break; case 'log': expressionPrefix = isInverse ? '10^' : 'log'; break; case 'sqrt': expressionPrefix = isInverse ? '(' + valueStr + ')²' : '√'; expressionSuffix = isInverse ? '' : `(${valueStr})`; break; case 'sqr': expressionPrefix = `(${valueStr})²`; expressionSuffix = ''; break; case '!': expressionPrefix = `${valueStr}!`; expressionSuffix = ''; break; default: expressionPrefix = func; } }
+                 switch (func) { case 'sin': result = isInverse ? Math.asin(value) : Math.sin(angleValue); break; case 'cos': result = isInverse ? Math.acos(value) : Math.cos(angleValue); break; case 'tan': const epsilon = 1e-10; if (!isInverse && Math.abs(Math.cos(angleValue)) < epsilon) { displayError("Tan Undefined"); return; } result = isInverse ? Math.atan(value) : Math.tan(angleValue); break; case 'ln': result = isInverse ? Math.exp(value) : Math.log(value); break; case 'log': result = isInverse ? Math.pow(10, value) : Math.log10(value); break; case 'sqrt': result = isInverse ? Math.pow(value, 2) : Math.sqrt(value); break; case 'sqr': result = Math.pow(value, 2); break; case '!': result = factorial(value); break; default: return; }
+                 if (isInverse && ['sin', 'cos', 'tan'].includes(func)) { if (angleMode === 'DEG') result = result * 180 / Math.PI; } if (isNaN(result) || !Number.isFinite(result)) { if (((func === 'ln' || func === 'log') && !isInverse && value <= 0) || (func === 'sqrt' && !isInverse && value < 0)) throw new Error("Domain Error"); if ((func === 'sin' || func === 'cos') && isInverse && (value < -1 || value > 1)) throw new Error("Domain Error"); throw new Error("Math Error"); }
+                 result = parseFloat(result.toPrecision(12)); let fullExpression = expressionPrefix + expressionSuffix; addToHistory(fullExpression, String(result)); currentInput = String(result); previousInput = ''; operator = null; calculationPerformed = true;
+             } catch (e) { displayError(e.message); } finally { isInverse = false; updateScientificButtonText(); updateDisplay(); }
+        }
+        function factorial(n) { /* ... same ... */ if (n < 0 || !Number.isInteger(n)) throw new Error("Factorial Error"); if (n > 170) throw new Error("Overflow"); if (n === 0 || n === 1) return 1; let result = 1; for (let i = 2; i <= n; i++) result *= i; return result; }
+        function handleConstant(constant) { /* ... same ... */ if (!isScientificMode) return; let value; switch(constant) { case 'π': value = Math.PI; break; case 'e': value = Math.E; break; default: return; } currentInput = String(parseFloat(value.toPrecision(14))); previousInput = ''; operator = null; calculationPerformed = true; isInverse = false; updateScientificButtonText(); updateDisplay(); currentExpression = currentInput; /* Show constant in expression */ }
+
+
+        // --- Control Functions --- (Update clear/backspace for expression)
+        function clearDisplay() {
+            currentInput = ''; previousInput = ''; operator = null; calculationPerformed = false;
+            currentExpression = ''; // Clear expression string
+            parenthesisOpenCount = 0; isInverse = false;
+            updateScientificButtonText(); updateDisplay();
+        }
+
+        function backspace() {
+            if (calculationPerformed) { clearDisplay(); return; } // Clear result on backspace?
+
+            if (currentInput !== '') { // Backspace current number
+                const removedChar = currentInput.slice(-1);
+                currentInput = currentInput.slice(0, -1);
+                 currentExpression = currentExpression.slice(0, -1); // Remove from expression too
+                 if (removedChar === '(') parenthesisOpenCount--;
+                 else if (removedChar === ')') parenthesisOpenCount++;
+            } else if (operator !== null) { // Remove last operator
+                 // Find last operator in expression and remove it
+                 currentExpression = currentExpression.trim().slice(0, -1).trim();
+                 operator = null;
+                 // Move previous back to current for editing
+                 currentInput = previousInput;
+                 previousInput = '';
+             } else if (previousInput !== '') { // Backspace previous number (usually after operator was removed)
+                 previousInput = previousInput.slice(0,-1);
+                 currentExpression = currentExpression.slice(0,-1);
+                 currentInput = previousInput; // Allow editing
+                 previousInput = '';
+             }
+            updateDisplay();
+        }
+
+        function handlePercent() { // Needs update for expression display
+            if (calculationPerformed || currentInput === '') return;
+            try {
+                let currentValue = parseFloat(unformatNumber(currentInput)); if (isNaN(currentValue)) return;
+                let result; let originalInputLength = currentInput.length;
+
+                if (operator && previousInput !== '') { // Percent of previous (e.g. 100 + 10%)
+                     let prevValue = parseFloat(unformatNumber(previousInput));
+                     result = prevValue * (currentValue / 100);
+                 } else { // Simple percent (e.g. 10%)
+                     result = currentValue / 100;
+                 }
+
+                result = parseFloat(result.toPrecision(12));
+                currentInput = String(result);
+
+                 // Update expression: Replace the last number with the percentage result
+                 currentExpression = currentExpression.slice(0, -originalInputLength) + currentInput;
+
+                calculationPerformed = false; // Allow further operations
+                updateDisplay();
+            } catch (e) { displayError("Error"); }
+        }
+
+        function displayError(message = "Error") { /* ... same ... */
+            display.textContent = message; // Show error on main display
+            expressionDisplay.textContent = ''; // Clear expression
+            currentInput = ''; // Prevent further calc on error message
+            previousInput = ''; operator = null; currentExpression = ''; calculationPerformed = true;
+        }
+
+        // --- Initial Setup ---
+        updateScientificButtonText();
+        updateDisplay();
+
+    </script>
+</body>
+</html>
